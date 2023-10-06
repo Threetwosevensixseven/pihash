@@ -1,7 +1,7 @@
 ; main.asm
 
 ; Assembles with sjasmplus v1.20.3 or above, from https://github.com/z00m128/sjasmplus
-; To build: cd build then make
+; To build (win only, sorry): cd src/dot then make
 ; To build and run in CSpect: make emu
 ; To build, sync to hardware Next and run: make sync then F4
                            
