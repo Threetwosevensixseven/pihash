@@ -97,7 +97,7 @@ show_usage:
                           jp Return.ToBasic             ; This is the end of the main dot command routine
                         endif            
 
-                        ;include arguments.asm           ; from https://gitlab.com/thesmog358/tbblue/-/blob/master/src/asm/dot_commands/arguments.asm
+                        include arguments.asm           ; from https://gitlab.com/thesmog358/tbblue/-/blob/master/src/asm/dot_commands/arguments.asm
                         include general.asm             ; General dot command routines
                         include print.asm               ; Printing routines, message and error strings
                         include vars.asm                ; Allocate space to store variables        
