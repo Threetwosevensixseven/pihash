@@ -5,7 +5,8 @@
 ; To build and run in CSpect: make emu
 ; To build, sync to hardware Next and run: make sync then F4
                            
-                        opt reset --syntax=abfw --zxnext=cspect ; tighten up syntax and warnings
+                        opt reset --syntax=abfw \
+                            --zxnext=cspect             ; Tighten up syntax and warnings
                         device ZXSPECTRUMNEXT           ; Make sjasmplus aware of Next memory map
                         include constants.asm           ; Define labels and constant values
                         include macros.asm              ; Define helper macros
@@ -22,7 +23,7 @@ Start:
                         ld (Return.Stack), sp           ; SMC> Save so we can always return without needing to balance stack
                         ld (Return.IY), iy              ; SMC> Put IY safe, just in case
                         ld sp, $4000                    ; Put stack safe inside dot command
-                        ld hl, LargeCmdLine
+                        //ld hl, EscapedCmdLine         ; TESTING ONLY
                         ld (SavedArgs), hl              ; Save args for later
 
                         call InstallErrorHandler        ; Handle scroll errors during printing and API calls
@@ -68,36 +69,49 @@ Start:
                         ErrorIfCarry Err.CoreMin        ; Raise minimum core error if < 3.05.00
 
                         ld hl, (SavedArgs)              ; Start at first arg
-.argLoop:               ld de, ArgBuffer                ; Parse remaining args in a loop
-                        call GetSizedArgProc
-                        break
+.argLoop:               ld ixl, 0                       ; Track matches during each loop pass in ix
+                        ld de, ArgBuffer                ; Parse remaining args in a loop
+                        call get_sizedarg               ; Garry's routine in arguments.asm
                         jr nc, .noMoreArgs
                         call ParseHelp
+                        call ParseMd5
+                        call ParseFileName              ; Must be last in the loop. Any unmatched arg is the filename.
                         jr .argLoop
 .noMoreArgs:
-WantsHelp+*:            ld a, SMC                       ; <SMC Non-zero if we should print help
+                        ld a, (FileCount)               ; If we have more than one file,
+                        cp 1                            ; then the args are bad,
+                        jr nz, .forceHelp               ; and we should display the help and exit.
+                        ld a, (WantsMd5)                ; If we don't want any of the action switches
+                        or a                            ; then the args are also bad,
+                        jr z, .forceHelp                ; and we should display the help and exit
+                        
+                        ld a, (WantsHelp)               ; Non-zero if we should print help
                         or a
-                        jr z, .noHelp
-                        PrintMsg Msg.Help
+                        jp z, .noHelp
+.forceHelp:             PrintMsg Msg.Help
                         if ((ErrDebug)==1)
                           Freeze 1,2
                         else
                           jp Return.ToBasic
                         endif
 .noHelp:
+                        ld a, (WantsMd5)
+                        or a
+                        jr z, .noMd5
+                        PrintMsg Msg.Md5
+.noMd5
 
-command_tail:
-temparg:
-show_usage:
 
 
                         if ((ErrDebug)==1)
                           Freeze 1,2
                         else
                           jp Return.ToBasic             ; This is the end of the main dot command routine
-                        endif            
+                        endif 
 
+                        opt push --dirbol               ; Allow directives at beginning of line just for imported pasmo code
                         include arguments.asm           ; from https://gitlab.com/thesmog358/tbblue/-/blob/master/src/asm/dot_commands/arguments.asm
+                        opt pop                         ; Disallow directives at beginning of line again
                         include general.asm             ; General dot command routines
                         include print.asm               ; Printing routines, message and error strings
                         include vars.asm                ; Allocate space to store variables        
@@ -105,4 +119,5 @@ show_usage:
 End equ $                                               ; End of the dot command
 Length equ End-Start                                    ; Length of the dot command
 
-                        savebin "../../bin/pihash", Start, Length ; Output the assembled dot command binary
+                        savebin "../../bin/pihash", \
+                            Start, Length               ; Output the assembled dot command binary

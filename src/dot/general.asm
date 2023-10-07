@@ -63,75 +63,8 @@ ErrorProc:
                           jp Return.WithCustomError     ; Straight to the error handing exit routine
                         endif
 
-; ***************************************************************************
-; * Parse an argument from the command tail                                 *
-; ***************************************************************************
-; Entry: HL=command tail
-;        DE=destination for argument
-; Exit:  Fc=0 if no argument
-;        Fc=1: parsed argument has been copied to DE and null-terminated
-;        HL=command tail after this argument
-;        BC=length of argument
-; NOTE:  BC is validated to be 1..255; if not, it does not return but instead
-;        exits via show_usage.
-;
-; Routine provided by Garry Lancaster, with thanks :) Original is here:
-; https://gitlab.com/thesmog358/tbblue/blob/master/src/asm/dot_commands/defrag.asm#L599
-GetSizedArgProc:
-                        ld a, h
-                        or l
-                        ret z                           ; exit with Fc=0 if hl is $0000 (no args)
-                        ld bc, 0                        ; initialise size to zero
-.loop:                  ld a, (hl)
-                        inc hl
-                        and a
-                        ret z                           ; exit with Fc=0 if $00
-                        cp CR
-                        ret z                           ; or if CR
-                        cp ':'
-                        ret z                           ; or if ':'
-                        cp ' '
-                        jr z, .loop                     ; skip any spaces
-                        cp '"'
-                        jr z, .quoted                   ; on for a quoted arg
-.unquoted:              ld (de), a                      ; store next char into dest
-                        inc de
-                        inc c                           ; increment length
-                        jr z, .badSize                  ; don't allow >255
-                        ld  a, (hl)
-                        and a
-                        jr z, .complete                 ; finished if found $00
-                        cp CR
-                        jr z, .complete                 ; or CR
-                        cp ':'
-                        jr z, .complete                 ; or ':'
-                        cp '"'
-                        jr z, .complete                 ; or '"' indicating start of next arg
-                        inc hl
-                        cp ' '
-                        jr nz, .unquoted                ; continue until space
-.complete:               xor a
-                        ld (de), a                      ; terminate argument with NULL
-                        ld a, b
-                        or c
-                        jr z, .badSize                  ; don't allow zero-length args
-                        scf                             ; Fc=1, argument found
-                        ret
-.quoted:                ld a, (hl)
-                        and a
-                        jr z, .complete                 ; finished if found $00
-                        cp CR
-                        jr z, .complete                 ; or CR
-                        inc hl
-                        cp '"'
-                        jr z, .complete                 ; finished when next quote consumed
-                        ld (de), a                      ; store next char into dest
-                        inc de
-                        inc c                           ; increment length
-                        jr z, .badSize                  ; don't allow >255
-                        jr .quoted
-.badSize:               pop af                          ; discard return address
-                        ErrorAlways Err.ArgsBad
+show_usage:                                             ; get_sizedarg in arguments.asm exits here if args length > 255, 
+                        ErrorAlways Err.ArgsBad         ; in which case exit with "Invalid Arguments" error.
 
 ParseHelp:
                         ret nc                          ; Return immediately if no arg found
@@ -143,16 +76,54 @@ ParseHelp:
                         cp 2
                         jr nz, .return
                         ld hl, ArgBuffer
-                        ld a, (hl)
-                        cp '-'
-                        jr nz, .return
-                        inc hl
-                        ld a, (hl)
-                        cp 'h'
-                        jr nz, .return
-                        ld a, 1
+                        Compare '-', .return            ; Does arg match -h ?
+                        Compare 'h', .return            
+                        ld a, 1                         ; Matches, set a flag
                         ld (WantsHelp), a
-.return:                pop hl
+                        ld ixl, 1                       ; Signal we matched an arg in this loop pass  
+.return:                pop hl                          ; Does not match
                         pop bc
+                        pop af
+                        ret
+
+ParseMd5:
+                        ret nc                          ; Return immediately if no arg found
+                        push af
+                        push bc
+                        push hl
+                        ld a, b
+                        or c
+                        cp 4
+                        jr nz, .return
+                        ld hl, ArgBuffer
+                        Compare '-', .return            ; Does arg match -md5 ?
+                        Compare 'm', .return
+                        Compare 'd', .return
+                        Compare '5', .return        
+                        ld a, 1                         ; Matches, set a flag
+                        ld (WantsMd5), a
+                        ld ixl, 1                       ; Signal we matched an arg in this loop pass                
+.return:                pop hl                          ; Does not match
+                        pop bc
+                        pop af
+                        ret
+
+ParseFileName:
+                        push af
+                        push bc
+                        push hl
+                        ld a, ixl                       ; Did we match this arg already?
+                        or a
+                        jr nz, .noFile                  ; Does not match 
+                        ld a, (FileCount)               ; Any unmatched arg is a file,
+                        inc a                           ; so increase
+                        ld (FileCount), a               ; the file count.
+                        ld hl, ArgBuffer                ; Copy the arg from the temp buffer
+                        ld de, FileName                 ; to the filename buffer
+                        ldir                                                    
+                        xor a
+                        ld (de), a
+.noFile:                pop hl
+                        pop bc         
                         pop af
                         ret

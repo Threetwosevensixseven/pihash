@@ -125,9 +125,16 @@ SavedA+*:                   ld a, SMC                   ; <SMC Restore A so it's
 .continue: 
                         endm
 
-                        macro GetSizedArg ArgTailPtr?, DestAddr? ; Parameterised wrapper for arg parser
+                        macro GetSizedArg \
+                            ArgTailPtr?, DestAddr?      ; Parameterised wrapper for arg parser
                             ld hl, (ArgTailPtr?)
                             ld de, DestAddr?                           
                             call GetSizedArgProc
                         endm
-                        
+
+                        macro Compare Char?, Addr?      ; Macro to compare a character   
+                            ld a, (hl)
+                            cp Char?                    ; Compare (HL) to Char? parameter
+                            jr nz, Addr?                ; If not matched go to Addr? parameter
+                            inc hl
+                        endm

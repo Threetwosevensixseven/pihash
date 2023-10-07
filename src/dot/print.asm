@@ -3,6 +3,7 @@
 ; Messages
 Msg.Startup:            db "PiHash v1.", BuildNoValue, CR
                         db Copyright, " 2023 Robin Verhagen-Guest", CR, CR, 0
+Msg.Md5:                db "Generating MD5 hash...", CR, 0                   
 Msg.Help:               db "Do crypto operations on the", CR, "Spectrum Next Pi Accelerator", CR, CR
                         db "pihash -md5 | -sha1 \"FILE\"", CR
                         db "pihash [-h]", CR, CR                     
@@ -23,14 +24,14 @@ Msg.Help:               db "Do crypto operations on the", CR, "Spectrum Next Pi 
 Err.Break:              db "D BREAK - CONT repeats"C
 Err.NotNext:            db "Spectrum Next required"C
 Err.CoreMin:            db "Core 3.05.00 required"C
-;Err.ArgsTooBig:         db "Arguments too long"C
+;Err.ArgsTooBig:        db "Arguments too long"C
 Err.ArgsBad:            db "Invalid Arguments"C
 
 PrintRst16:
                         SafePrintStart
                         if ((DisableScroll)==1)
-                          ld a, 24                      ; Set upper screen to not scroll
-                          ld (ROM.SCR_CT), a            ; for another 24 rows of printing
+                            ld a, 24                    ; Set upper screen to not scroll
+                            ld (ROM.SCR_CT), a          ; for another 24 rows of printing
                         endif
                         ei
 .loop:                  ld a, (hl)
@@ -57,4 +58,4 @@ PrintRst16Error:
                         rst 16
                         ld a, CR                        ; The error message doesn't include a trailing CR in the
                         rst 16                          ; definition, so we want to add one when we print it
-                        jr .return                       ; in the upper screen.
+                        jr .return                      ; in the upper screen.
