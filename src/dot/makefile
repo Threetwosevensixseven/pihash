@@ -28,6 +28,7 @@ clean:
 # Builds, injects built dot and autoexec into CSpect SD image, and starts CSpect asynchronously.
 emu: build
 	$(HDFMONKEY) put $(EMUSD) $(BINDIR)/pihash. dot
+#	$(HDFMONKEY) put $(EMUSD) $(BINDIR)/p3. dot
 #	$(HDFMONKEY) put $(EMUSD) $(SRCDIR)/autoexec.bas NextZXOS
     -$(KILL) cspect.exe 
     start /d $(EMUDIR) cspect -w2 -zxnext -nextrom -basickeys -exit -brk -tv -emu -mmc=$(EMUSD)
