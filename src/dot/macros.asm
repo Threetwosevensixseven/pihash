@@ -29,20 +29,19 @@
                             break                       ; break is db $dd, $01, enavbed with --zxNnext=cspect
                         endm                            ; This one is not safe to leave in non-CSpect code
 
-                        macro MFBreak                   ; This turns off divMMC and triggers a NMI breakpoint
+                        macro MFBreak                   ; This one works if divMMC is already disabled,
+                            nextreg 2, 8                ; and shouldn't blow up at all.                       
+                        endm                            ; For cores 3.01.10 and above.
+
+                        macro MFBreakDivMMC             ; This turns off divMMC and triggers a NMI breakpoint
                             push bc                     ; You need to be in regular RAM >= $4000 to invoke this,
                             ld c, $e3                   ; and it will blow up if you try to return to divMMC memory.
                             ld b, 0                     ; For cores 3.01.10 and above.
                             out (c), b
                             pop bc
-                            extreg 10, 8
+                            nextreg 10, 8
                             nextreg 2, 8
                             nop
-                        endm
-
-                        macro MFBreak1                  ; This one works if divMMC is already disabled,
-                            nextreg 2, 8                ; and shouldn't blow up at all.
-                            nop                         ; For cores 3.01.10 and above.
                         endm
 
                         macro MFBreakOld                ; Intended for NextZXOS NMI debugging on cores < 3.01.10.
@@ -63,18 +62,25 @@
                             call PrintRst16
                         endm
 
+                        macro PrintMsgAlt Address?      ; Use alternate -1 terminator byte, instead of 0
+                            ld hl, Address?
+                            call PrintRst16Alt
+                        endm
+
                         macro SafePrintStart            ; Included at the start of every routine which calls rst 16
                             di                          ; Interrupts off while paging. Subsequent code will enable them.
-                            ld (SavedStackPrint), sp    ; Save current stack to be restored in SafePrintEnd()
-                            ld sp, (Return.Stack)       ; Set stack back to what BASIC had at entry, so safe for rst 16
+                            ld (SavedStackPrint), sp    ; Save current stack to be restored in SafePrintEnd().
+                            ld sp, (Return.Stack)       ; Set stack back to what BASIC had at entry, so safe for rst 16.
+                            call BanksBackToBasic       ; Put all allocated banks back to their BASIC state.
                             ld (SavedIYPrint), iy
                             ld iy, ROM.IY
+
                         endm
 
                         macro SafePrintEnd              ; Included at the end of every routine which calls rst 16
                             di                          ; Interrupts off while paging. Subsequent code doesn't care.
-SavedA+*:                   ld a, SMC                   ; <SMC Restore A so it's completely free of side-effects
-                            ld sp, (SavedStackPrint)    ; Restore stack to what it was before SafePrintStart()
+                            ld sp, (SavedStackPrint)    ; Restore stack to what it was before SafePrintStart().
+                            call BanksBackToDot         ; Put all allocated banks back to their dot command state.
                             ld iy, (SavedIYPrint)
                         endm
 

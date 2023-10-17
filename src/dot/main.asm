@@ -46,6 +46,13 @@ Start:
                         cp 8                            ; Exit with error if not a Next. HL still points to err message,
                         jp nz, Return.WithCustomError   ; be careful if adding code between the Next check and here!
 .isANext:
+                        NextRegRead $57                 ; Backup existing banks in all three slots,
+                        ld (RestoreBanks.R57), a        ; and do it right now in case we take an early exit.
+                        NextRegRead $56                 ; We can't do this backup before the IsANext check,
+                        ld (RestoreBanks.R56), a        ; as reading these ports will have a bad effect on a non-Next.
+                        NextRegRead $56                 ; We might still have exited before this point, but only on a                                                                   
+                        ld (RestoreBanks.R56), a        ; classic Spectrum, where the default values will be correct.
+
                         NextRegRead Reg.Peripheral2     ; Read Peripheral 2 register.
                         ld (RestoreF8.Saved), a         ; Save current value so it can be restored on exit.                   
                         and %0111'1111                  ; Clear the F8 enable bit,
@@ -63,10 +70,10 @@ Start:
                         NextRegRead Reg.CoreMSB         ; Core Major/Minor version
                         ld h, a
                         NextRegRead Reg.CoreLSB         ; Core Sub version
-                        ld l, a                         ; HL = version, should be >= $3500
+                        ld l, a                         ; HL = version, should be >= $3105
                         ld de, CoreMinVersion
                         CpHL de
-                        ErrorIfCarry Err.CoreMin        ; Raise minimum core error if < 3.05.00
+                        ErrorIfCarry Err.CoreMin        ; Raise minimum core error if < 3.01.05
 
                         ld hl, (SavedArgs)              ; Start at first arg
 .argLoop:               ld ixl, 0                       ; Track matches during each loop pass in ix
@@ -88,33 +95,70 @@ Start:
                         ld a, (WantsHelp)               ; Non-zero if we should print help
                         or a
                         jp z, .noHelp
-.forceHelp:             PrintMsg Msg.Help
+.forceHelp:             if ((DisableScroll)==1)
+                            ld a, 1
+                            ld (PrintRst16.ScrollCnt), a; SMC> Always reenable scrolling 
+                        endif                           ; when printing help and exiting.
+                        PrintMsg Msg.Help               
                         if ((ErrDebug)==1)
                           Freeze 1,2
                         else
                           jp Return.ToBasic
                         endif
 .noHelp:
-                        ld a, (WantsMd5)
-                        or a
-                        jr z, .noMd5
-                        PrintMsg Msg.Md5
-.noMd5
+                        xor a                           ; A=0, query current mode information
+                        ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
+                        ld de, NextZXOS.IDE_MODE        ; M_P3DOS takes care of stack safety stack for us
+                        Rst8(esx.M_P3DOS)               ; Make NextZXOS API call through esxDOS API with M_P3DOS
+                        ErrorIfNoCarry(Err.NotOS)       ; Fatal error, exits dot command
+                        and %000000'11                  ; A bits 1..0 are LAYER
+                        jr z, .endLayerDetection        ; If LAYER 0, we will handle disabling scroll at print time
+                        if ((DisableScroll)==1)         ; by poking ROM.SCR_CT. Otherwise,
+                            PrintMsgAlt Msg.NoScroll    ; Print CHR$ 26;CHR$ 0; to disable scroll when not LAYER 0.
+                        endif
+.endLayerDetection:
 
+                        ; This dot command is larger than 8KB, because the Pi binaries are included.
+                        ; We have a strategy for dealing with that.
+                        ; NextZXOS will automatically load the first 8KB, which contains all the core code,
+                        ; and will leave the file handle open. If the core code is less than 8KB, 
+                        ; the makefile will pad it to 8KB automatically.
+                        ; Use of this feature means this dot cmd cannot run under vanilla esxDOS, so we 
+                        ; must do an initial check for NextZXOS, and exit gracefully if not present.
+                        ; We call M_GETHANDLE to get and save the handle.
+                        Rst8(esx.M_GETHANDLE)           ; Get dot handle
+                        ld (DotHandle), a               ; Save dot handle for later
 
+                        ; We need one 8K bank to handle file buffers. 
+                        ; Same bank buffer is used for loading Pi binaries and loading the file to be hashed.
+                        ; We also need a second 8K bank to hold pisend,
+                        ; and a third bank to backup and restore the current state of this .pihash command.
+                        ; We will use IDE_BANK to allocate thee 8KB banks, 
+                        ; which must be freed before exiting the dot command.
+                        call Allocate8KBank             ; Bank number in A (not E), errors have already been handled.
+                        ld (RestoreBanks.Bank1), a      ; Save bank number,
+                        nextreg $57, a                  ; and set slot 7 to the allocated bank.
+                        call Allocate8KBank             ; Bank number in A (not E), errors have already been handled.
+                        ld (RestoreBanks.Bank2), a      ; Save bank number,
+                        nextreg $56, a                  ; and set slot 6 to the allocated bank.                   
+                        call Allocate8KBank             ; Bank number in A (not E), errors have already been handled.
+                        ld (RestoreBanks.Bank3), a      ; Save bank number,
+                        nextreg $55, a                  ; and set slot 5 to the allocated bank.  
 
-                        if ((ErrDebug)==1)
-                          Freeze 1,2
-                        else
-                          jp Return.ToBasic             ; This is the end of the main dot command routine
-                        endif 
+                        ; This is the point where the real .pihash business logic starts.
+                        ; Let's move it into a separate source file for readability.
+                        jp DoPiHashing
 
                         opt push --dirbol               ; Allow directives at beginning of line just for imported pasmo code
                         include arguments.asm           ; from https://gitlab.com/thesmog358/tbblue/-/blob/master/src/asm/dot_commands/arguments.asm
                         opt pop                         ; Disallow directives at beginning of line again
+                        include pihash.asm              ; Business logic for doing dot command hashing
                         include general.asm             ; General dot command routines
                         include print.asm               ; Printing routines, message and error strings
-                        include vars.asm                ; Allocate space to store variables        
+                        include vars.asm                ; Allocate space to store variables   
+
+                        ;org $3fff                      ; Pad dot command to 8KB
+                        ;db 0;                             
 
 End equ $                                               ; End of the dot command
 Length equ End-Start                                    ; Length of the dot command

@@ -14,7 +14,7 @@ Return:                                                 ; This routine restores 
 Return.ToBasic:                                         ; the dot cmd, for success and errors, then returns to BASIC.                                
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state.
-                        ;call RestoreBanks              ; Restore original banks
+                        call RestoreBanks               ; Restore original banks
 Return.RestoreStack:
 Return.Stack+*:         ld sp, SMC                      ; <SMC Unwind stack to original point.
 Return.IY+*:            ld iy, SMC                      ; <SMC Restore IY.
@@ -25,7 +25,7 @@ Return.WithCustomError:
                         push hl
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
-                        ;call RestoreBanks              ; Restore original banks
+                        call RestoreBanks               ; Restore original banks
                         xor a
                         scf                             ; Signal error, hl = custom error message
                         pop hl                          ; (NextZXOS is not currently displaying standard error messages,
@@ -49,6 +49,57 @@ RestoreSpeed.Set+*:     ld a, SMC                       ; <SMC If still non-zero
                         or a                            ; then the value hasn't been read and set,
                         ret z                           ; so return immediately
 RestoreSpeed.Saved+*:   nextreg Reg.CPUSpeed, SMC       ; <SMC Restore speed to what it originally was at dot cmd entry
+                        ret
+
+RestoreBanks:
+                        push af
+RestoreBanks.Bank1+*:   ld a, -2                        ; <SMC Read the MMU bank that was previously in slot 7.
+                        cp -2                           ; If it was -2 then we never changed it,
+                        jr z, RestoreBanks.Restore2     ; so skip this part,
+                        call Deallocate8KBank           ; otherwise deallocate the bank,
+RestoreBanks.Restore2:
+RestoreBanks.Bank2+*:   ld a, -2                        ; <SMC Read the MMU bank that was previously in slot 6.
+                        cp -2                           ; If it was -2 then we never changed it,
+                        jr z, RestoreBanks.Restore3     ; so skip this part,
+                        call Deallocate8KBank           ; otherwise deallocate the bank,
+RestoreBanks.Restore3:
+RestoreBanks.Bank3+*:   ld a, -2                        ; <SMC Read the MMU bank that was previously in slot 5.
+                        cp -2                           ; If it was -2 then we never changed it,
+                        jr z, RestoreBanks.Restore4     ; so skip this part,
+                        call Deallocate8KBank           ; otherwise deallocate the bank,
+RestoreBanks.Restore4:
+RestoreBanks.R55+*:     nextreg $55, 5                  ; Restore what BASIC is expecting to find at $A000 (16K bank 5)
+RestoreBanks.R56+*:     nextreg $56, 0                  ; Restore what BASIC is expecting to find at $C000 (16K bank 0)
+RestoreBanks.R57+*:     nextreg $57, 1                  ; Restore what BASIC is expecting to find at $E000 (16K bank 0)      
+                        pop af
+                        ret
+
+BanksBackToBasic:
+                        push af
+                        ld a, (RestoreBanks.R55)
+                        nextreg $55, a
+                        ld a, (RestoreBanks.R56)
+                        nextreg $56, a
+                        ld a, (RestoreBanks.R57)
+                        nextreg $57, a
+                        pop af
+                        ret
+
+BanksBackToDot:
+                        push af
+                        ld a, (RestoreBanks.Bank1)
+                        cp -2
+                        jp z, .continue1
+                        nextreg $57, a
+.continue1:             ld a, (RestoreBanks.Bank2)
+                        cp -2
+                        jp z, .continue2
+                        nextreg $56, a
+.continue2:             ld a, (RestoreBanks.Bank3)
+                        cp -2
+                        jp z, .continue3
+                        nextreg $55, a
+.continue3:             pop af
                         ret
 
 ErrorProc:
@@ -127,3 +178,20 @@ ParseFileName:
                         pop bc         
                         pop af
                         ret
+
+Allocate8KBank:
+                        ld hl, $0001                    ; H = $00: rc_banktype_zx, L = $01: rc_bank_alloc
+Allocate8KBank.Internal:exx
+                        ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
+                        ld de, NextZXOS.IDE_BANK        ; M_P3DOS takes care of stack safety stack for us
+                        Rst8(esx.M_P3DOS)               ; Make NextZXOS API call through esxDOS API with M_P3DOS
+                        ErrorIfNoCarry(Err.NoMem)       ; Fatal error, exits dot command
+                        ld a, e                         ; Return in a more conveniently saveable register (A not E)
+                        ret
+
+Deallocate8KBank:                                       ; Takes bank to deallocate in A (not E) for convenience
+                        cp $FF                          ; If value is $FF it means we never allocated the bank,
+                        ret z                           ; so return with carry clear (error) if that is the case
+                        ld e, a                         ; Now move bank to deallocate into E for the API call
+                        ld hl, $0003                    ; H = $00: rc_banktype_zx, L = $03: rc_bank_free
+                        jr Allocate8KBank.Internal      ; Rest of deallocate is the same as the allocate routine

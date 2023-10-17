@@ -1,9 +1,9 @@
 ; constants.asm
 
 ; Application               
-DisableScroll           equ 0                           ; 0 or 1
+DisableScroll           equ 1                           ; 0 or 1
 ErrDebug                equ 0                           ; 0 or 1
-CoreMinVersion          equ $3500                       ; 3.05.00
+CoreMinVersion          equ $3105                       ; 3.01.05
 
 ; Defines
                         define ARG_PARAMS_DEHL 1        ; Needed for arguments.asm. Makes HL=tail address, DE=argument dest
@@ -26,7 +26,13 @@ Port.Reg                equ $243B                       ; Nextreg register selec
 
 ; esxDOS
 esx.M_DOSVERSION        equ $88                         ; $88 (136) get NextZXOS version/mode information
+esx.M_GETHANDLE         equ $8d                         ; $8d (141) get handle for current dot command
+esx.M_P3DOS             equ $94                         ; $94 (148) execute +3DOS/IDEDOS/NextZXOS call
 esx.M_ERRH              equ $95                         ; $95 (149) register dot command error handler
+
+; NextZXOS
+NextZXOS.IDE_MODE       equ $01d5                       ; Query NextBASIC display mode info, or change mode
+NextZXOS.IDE_BANK       equ $01bd                       ; Allocate or free 8K banks in ZX or DivMMC memory
 
 ; Chars
 SMC                     equ 0                           ; Used to xplicitly indicate an SMC target

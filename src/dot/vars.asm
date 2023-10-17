@@ -8,6 +8,7 @@ IsNext:                 db 0
 WantsMd5:               db 0
 WantsHelp:              db 0
 FileCount:              db 0
+DotHandle:              db 0
 
 ; Buffers (will be at end of dot command)
 ArgBuffer:              ds 256
