@@ -3,8 +3,13 @@
 ; Messages
 Msg.Startup:            db "PiHash v1.", BuildNoValue, CR
                         db Copyright, " 2023 Robin Verhagen-Guest", CR, CR, 0
-Msg.NoScroll:           db 26, 0, -1 ; Printed with PrintMsgAlt macro          
-Msg.Md5:                db "Generating MD5 hash...", CR, 0                   
+Msg.NoScroll:           db 26, 0, -1 ; Printed with PrintMsgAlt macro
+Msg.EOL:                db CR, 0
+Msg.EOLPad:             db CR, CR, CR, 0
+Msg.Md5:                db "Generating MD5 hash...", CR, 0    
+Msg.115200:             db "PiSend Returned: 115,200", CR, 0
+Msg.2meg:               db "PiSend Returned: 2,000,000", CR, 0  
+Msg.PiNotFound:         db "PiSend Returned: Pi Not found", CR, 0                 
 Msg.Help:               db "Do crypto operations on the", CR, "Spectrum Next Pi Accelerator", CR, CR
                         db "pihash -md5 | -sha1 \"FILE\"", CR
                         db "pihash [-h]", CR, CR                     
@@ -28,12 +33,13 @@ Err.NotNext:            db "Spectrum Next required"C
 Err.CoreMin:            db "Core 3.01.05+ required"C
 Err.ArgsBad:            db "Invalid Arguments"C
 Err.NotOS:              db "NextZXOS required"C
+Err.PiSendNFF:          db "G Missing .", Files.PiSendName, " cmd"C
 
 PrintRst16:
                         SafePrintStart
                         if ((DisableScroll)==1)
 PrintRst16.ScrollCnt+*:     ld a, 22                    ; Set upper screen to not scroll
-                            ld (ROM.SCR_CT), a          ; for another 24 rows of printing
+                            ld (ROM.SCR_CT), a          ; for another 22 rows of printing
                         endif
                         ei
 PrintRst16.Loop:        ld a, (hl)

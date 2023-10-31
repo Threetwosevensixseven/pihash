@@ -7,6 +7,7 @@ CoreMinVersion          equ $3105                       ; 3.01.05
 
 ; Defines
                         define ARG_PARAMS_DEHL 1        ; Needed for arguments.asm. Makes HL=tail address, DE=argument dest
+                        define Files.PiSendName "p3"    ; Name of .pisend without the dot. Must be <=7 chars.   
 
 ; 48K ROM
 ROM.IY                  equ $5C3A                       ; 48K ROM expects IY to point to sysvars
@@ -29,6 +30,10 @@ esx.M_DOSVERSION        equ $88                         ; $88 (136) get NextZXOS
 esx.M_GETHANDLE         equ $8d                         ; $8d (141) get handle for current dot command
 esx.M_P3DOS             equ $94                         ; $94 (148) execute +3DOS/IDEDOS/NextZXOS call
 esx.M_ERRH              equ $95                         ; $95 (149) register dot command error handler
+esx.F_OPEN              equ $9a                         ; $9a (154) open file
+esx.F_CLOSE             equ $9b                         ; $9b (155) close file
+esx.F_READ              equ $9d                         ; $9d (157) read file
+esx.FA_READ             equ $01                         ; esx_mode_read $01 request read access
 
 ; NextZXOS
 NextZXOS.IDE_MODE       equ $01d5                       ; Query NextBASIC display mode info, or change mode

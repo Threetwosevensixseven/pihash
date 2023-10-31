@@ -106,6 +106,9 @@ Start:
                           jp Return.ToBasic
                         endif
 .noHelp:
+                                                        ; Always consult the latest version of the NextZXOS 
+                                                        ; and esxDOS API doc, available on the distro and here:
+                                                        ; https://gitlab.com/thesmog358/tbblue/-/blob/master/docs/nextzxos/NextZXOS_and_esxDOS_APIs.pdf
                         xor a                           ; A=0, query current mode information
                         ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
                         ld de, NextZXOS.IDE_MODE        ; M_P3DOS takes care of stack safety stack for us
@@ -145,16 +148,36 @@ Start:
                         ld (RestoreBanks.Bank3), a      ; Save bank number,
                         nextreg $55, a                  ; and set slot 5 to the allocated bank.  
 
-                        ; This is the point where the real .pihash business logic starts.
-                        ; Let's move it into a separate source file for readability.
-                        jp DoPiHashing
+                        call LoadAndCachePiSend
+                        ld hl, Cmd.PisendQ+$C000        ; Load address of command line, adjusted for parking
+                        ld (CallPiSend.Cmd-$C000), hl   ; Write into calling routine address, adjusted for parking
+                        call ParkAndCallPiSend
+                        PrintMsg Msg.EOLPad
+                        NextRegRead $7f
+                        cp 2
+                        jr nz, .not115
+                        PrintMsg Msg.115200
+                        jr .endbaud
+.not115:                cp 8
+                        jr nz, .not2meg
+                        PrintMsg Msg.2meg
+                        jr .endbaud    
+.not2meg:               PrintMsg Msg.PiNotFound
+.endbaud:
+
+FinishPiHashing:
+                        if ((ErrDebug)==1)
+                          Freeze 1,2
+                        else
+                          jp Return.ToBasic             ; This is the end of the main dot command routine
+                        endif 
 
                         opt push --dirbol               ; Allow directives at beginning of line just for imported pasmo code
                         include arguments.asm           ; from https://gitlab.com/thesmog358/tbblue/-/blob/master/src/asm/dot_commands/arguments.asm
                         opt pop                         ; Disallow directives at beginning of line again
-                        include pihash.asm              ; Business logic for doing dot command hashing
                         include general.asm             ; General dot command routines
                         include print.asm               ; Printing routines, message and error strings
+                        include park.asm                ; Routines displaced to execute at $E000
                         include vars.asm                ; Allocate space to store variables   
 
                         ;org $3fff                      ; Pad dot command to 8KB

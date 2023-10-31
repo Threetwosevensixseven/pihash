@@ -195,3 +195,50 @@ Deallocate8KBank:                                       ; Takes bank to dealloca
                         ld e, a                         ; Now move bank to deallocate into E for the API call
                         ld hl, $0003                    ; H = $00: rc_banktype_zx, L = $03: rc_bank_free
                         jr Allocate8KBank.Internal      ; Rest of deallocate is the same as the allocate routine
+
+ParkPiHash:
+                        ld hl, $2000                    ; Copy the entire 8K block of the current state of .pihash
+                        ld de, $E000                    ; to $E000 (park it).
+                        ld bc, $2000
+                        ldir 
+                        or a
+                        ld hl, $C000
+                        adc hl, sp 
+                        ld sp, hl                       ; Point stack in $E000 bank instead of $2000 bank
+                        pop hl
+                        ld de, $C000
+                        add hl, de
+                        jp (hl)                         ; Pop the top stack value, convert to $E000 and return                     
+                         
+
+LoadAndCachePiSend:
+                        
+                        ld hl, Files.PiSend             ; HL not IX because we are in a dot command
+                        ld a, '$'                       ; System drive, where dot commands always live
+                        ld b, esx.FA_READ               ; b = open mode (esx_mode_read $01 request read access)
+                        Rst8 esx.F_OPEN                 ; $9a (154) open file
+                        ErrorIfCarry Err.PiSendNFF      ; Raise missing .pisend error if not loaded
+                        ld (Files.PiSendHandle), a      ; Store open .pisend handle for later use                 
+                        ld hl, $C000                    ; Read .pisend command file into $C000
+                        ld bc, $2000                    ; Maximum 8KB (probably smaller)
+                        Rst8 esx.F_READ                 ; ; $9d (157) read file
+                        ErrorIfCarry(Err.PiSendNFF)     ; Raise missing .pisend error if not read
+                                                        ; CF is guaranteed clear here,
+                                                        ; but don't insert other code before zeroize!
+                        ex de, hl                       ; Put address of second byte to be zeroed in de.
+                        ld hl, $1FFF                    ; Take the size of an 8K block minus 1,
+                        sbc hl, bc                      ; and subtract the bytes loaded (returned in bc).
+                        ld c, l                        
+                        ld b, h                         ; Put count of bytes to zeroize in bc.                     
+                        push de                         ; Put address first byte 
+                        pop hl                          ; to be zeroed in hl,
+                        inc de                          ; and address of second byte in de.
+                        ld (hl), 0                      ; Zeroize first byte
+                        ldir                            ; then zeroize the rest.
+                        ret
+
+ParkAndCallPiSend:     
+                        call ParkPiHash                 ; Park .pihash at $E000
+                        jp $+$C003                      ; Jump to the next line but in the parked version 
+                        call CallPiSend
+                        ret

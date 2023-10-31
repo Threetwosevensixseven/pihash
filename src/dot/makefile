@@ -9,7 +9,7 @@ BINDIR = ..\..\bin
 SJASMPLUS = ..\..\tools\sjasmplus
 HDFMONKEY = ..\..\tools\hdfmonkey
 ZXVERSION = ..\..\tools\zxversion
-EMUDIR = C:\spec\CSpect2_19_4_3
+EMUDIR = C:\spec\CSpect2_19_4_4
 EMUSD = C:\spec\sd208\cspect-next-2gb.img
 SYNCDIR = C:\spec\sync\ON
 RM = del /F /Q
@@ -28,10 +28,11 @@ clean:
 # Builds, injects built dot and autoexec into CSpect SD image, and starts CSpect asynchronously.
 emu: build
 	$(HDFMONKEY) put $(EMUSD) $(BINDIR)/pihash. dot
-#	$(HDFMONKEY) put $(EMUSD) $(BINDIR)/p3. dot
+	$(HDFMONKEY) put $(EMUSD) $(BINDIR)/pisend. dot
+	$(HDFMONKEY) put $(EMUSD) $(BINDIR)/p3. dot
 #	$(HDFMONKEY) put $(EMUSD) $(SRCDIR)/autoexec.bas NextZXOS
     -$(KILL) cspect.exe 
-    start /d $(EMUDIR) cspect -w2 -zxnext -nextrom -basickeys -exit -brk -tv -emu -mmc=$(EMUSD)
+    start /d $(EMUDIR) cspect -w3 -zxnext -nextrom -basickeys -exit -brk -tv -emu -mmc=$(EMUSD)
 
 # Builds, copies dot and autoexec to NextSync sync directory, and starts starts the server asynchronously.
 # WHen you F4, autoexec will skip running .fastsync (because CSpect defaults to core version 4.0.0), then run the dot command.
@@ -39,8 +40,11 @@ emu: build
 sync: build
 	-$(MD) "$(SYNCDIR)\dot"
 	copy "$(BINDIR)\pihash." "$(SYNCDIR)\dot\*.*"
+	copy "$(BINDIR)\pisend." "$(SYNCDIR)\dot\*.*"
+	copy "$(BINDIR)\p3." "$(SYNCDIR)\dot\*.*"
 	-$(MD) "$(SYNCDIR)\NextZXOS"
 	copy "$(SRCDIR)\autoexec.bas" "$(SYNCDIR)\NextZXOS\*.*"
+	-$(MD) "$(SYNCDIR)\NextZXOS"
 
 # Warning: kills all running python processes
 # Remove these two lines and start the server manually if that bothers you

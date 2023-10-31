@@ -10,6 +10,13 @@ WantsHelp:              db 0
 FileCount:              db 0
 DotHandle:              db 0
 
+; Files
+Files.PiSend:           db "/dot/", Files.PiSendName, 0 ; This is where .pisend lives on the user's SD card
+Files.PiSendHandle:     db 255                          ; .pisend handle will be stored here for later closing
+
+; Command Lines
+Cmd.PisendQ             db "-q", 0
+
 ; Buffers (will be at end of dot command)
 ArgBuffer:              ds 256
 FileName:               ds 256
