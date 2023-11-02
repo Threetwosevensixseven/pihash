@@ -199,17 +199,16 @@ Deallocate8KBank:                                       ; Takes bank to dealloca
 ParkPiHash:
                         ld hl, $2000                    ; Copy the entire 8K block of the current state of .pihash
                         ld de, $E000                    ; to $E000 (park it).
-                        ld bc, $2000
+                        ld b, h
+                        ld c, l
                         ldir 
-                        or a
                         ld hl, $C000
-                        adc hl, sp 
+                        add hl, sp
                         ld sp, hl                       ; Point stack in $E000 bank instead of $2000 bank
                         pop hl
                         ld de, $C000
                         add hl, de
-                        jp (hl)                         ; Pop the top stack value, convert to $E000 and return                     
-                         
+                        jp (hl)                         ; Pop the top stack value, convert to $E000 and return
 
 LoadAndCachePiSend:
                         
