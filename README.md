@@ -24,7 +24,9 @@ demonstrator, Pihash can serve a useful purpose.
 | Create a simple python2 program to output MD5 hash for a file |   |
 | Get CSpect [UARTReplacement](https://github.com/Threetwosevensixseven/CSpectPlugins) plugin working with Pi as well as ESP UARTs | Y |
 | Fix intermittent errors using with .p3 and UARTReplacement plugin | Y |
-| Get a physical Pi working with a USB serial cable for .pihash test purposes | Y |
+| Get a physical Pi working with a USB serial cable for .pihash test purposes | Y 
+| Get a physical Pi working with a wired ethernet OTG adaptor | Y 
+| Get NextPi SSH and SCP clients working with Windows SSH and SCP servers |   |
 | Use .pisend to dynamically upload py2 program |   |
 | Use .pisend to dynamically upload py2 program if not already present and set permissions |   |
 | Use .pisend to execute py2 program and return output |   |
