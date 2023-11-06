@@ -24,9 +24,9 @@ demonstrator, Pihash can serve a useful purpose.
 | Create a simple python2 program to output MD5 hash for a file |   |
 | Get CSpect [UARTReplacement](https://github.com/Threetwosevensixseven/CSpectPlugins) plugin working with Pi as well as ESP UARTs | Y |
 | Fix intermittent errors using with .p3 and UARTReplacement plugin | Y |
-| Get a physical Pi working with a USB serial cable for .pihash test purposes | Y 
-| Get a physical Pi working with a wired ethernet OTG adaptor | Y 
-| Get NextPi SSH and SCP clients working with Windows SSH and SCP servers |   |
+| Get a physical Pi working with a USB serial cable for .pihash test purposes | Y |
+| Get a physical Pi working with a wired ethernet OTG adaptor | Y |
+| Get NextPi SSH and SCP clients working with Windows SSH and SCP servers | Y |
 | Use .pisend to dynamically upload py2 program |   |
 | Use .pisend to dynamically upload py2 program if not already present and set permissions |   |
 | Use .pisend to execute py2 program and return output |   |
@@ -73,6 +73,9 @@ David Saphier. Pihash currently uses a [slightly modified version](https://githu
 [BSD-3-Clause](https://github.com/z00m128/sjasmplus/blob/master/LICENSE.md).
 
 [CSpect](https://dailly.blogspot.com/) by [Mike Dailly](https://lemmings.info/) is (c) Copyright 1998-2023 All rights reserved.
+
+[NextSync](https://solhsa.com/specnext.html#NEXTSYNC) is by [Jari Komppa](https://solhsa.com/who.html),
+and is licensed under [Unlicense](https://github.com/jarikomppa/specnext/blob/master/LICENSE).
 
 [Sinclair](https://trademarks.ipo.gov.uk/ipo-tmcase/page/Results/1/UK00001034487) and
 [ZX Spectrum](https://trademarks.ipo.gov.uk/ipo-tmcase/page/Results/1/UK00001171866) are Registered Trademarks of Sky In-Home Service Limited,

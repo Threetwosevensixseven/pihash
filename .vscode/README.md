@@ -2,7 +2,7 @@
 
 ## Build Tasks
 
-VSCode will automatically pick up build tasks from this project directory. `tasks.json` contains the following build tasks:
+VSCode will automatically pick up build tasks from the `.vscode` project subdirectory. `tasks.json` contains the following build tasks:
 
 ### make
 
@@ -23,7 +23,8 @@ Please let me know if other Windows MAKEs have issues. If you fix it up for linu
 
 ## Key Bindings
 
-VSCode key bindings are specified globally for the current user, not by project. To use these bindings, copy `keybindings.json` to your VSCode user settings. In Windows this is at `%APPDATA%\Code\User\keybindings.json`.
+VSCode key bindings are specified globally for the current user, not by project. To use these bindings, copy `keybindings.json`
+to your VSCode user settings. In Windows this is at `%APPDATA%\Code\User\keybindings.json`.
 
 The following key bindings are provided:
 
